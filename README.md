@@ -86,8 +86,9 @@ through a supported launcher, so they count and get closed too.
   `Epic Games` or `GOG Galaxy\Games` folder, anything in `extraProcesses`, and
   anything already seen as a game.
 - The day rolls over at the reset hour (default 05:00). Gaming hours and the
-  day boundary are judged on UTC plus an offset captured when the reset hour
-  was saved, so changing the time zone does not move them.
+  day boundary are judged in the time zone recorded when the reset hour was
+  saved, so daylight saving is handled and changing the system time zone
+  afterwards does not move them.
 - The badge and banners are not protected. Removing them only removes the
   warnings; the lock does not depend on them.
 

@@ -64,6 +64,7 @@ function Get-Config {
         weekendMinutes = $null
         resetHourLocal = 5
         resetHourUtc   = 3
+        timeZoneId     = $null   # Windows time zone id recorded when the reset hour was saved
         warnings       = @(30, 15, 5, 1)
         extraProcesses = @()
         graceSeconds   = 60
@@ -85,10 +86,13 @@ function Get-Config {
     return $cfg
 }
 
-# "Local" time derived from UTC plus the offset captured when the reset hour
-# was saved. Standard users can change the time zone but not the clock, so this
-# cannot be shifted by changing the zone.
+# "Local" time in the zone recorded when the reset hour was saved, so daylight
+# saving is handled and changing the system time zone later changes nothing.
+# Older configs only have a fixed offset; those fall back to it.
 function Get-LocalNow($Config) {
+    if ($Config.timeZoneId) {
+        try { return [TimeZoneInfo]::ConvertTimeFromUtc([DateTime]::UtcNow, [TimeZoneInfo]::FindSystemTimeZoneById([string]$Config.timeZoneId)) } catch {}
+    }
     $offset = [double]$Config.resetHourLocal - [double]$Config.resetHourUtc
     return [DateTime]::UtcNow.AddHours($offset)
 }

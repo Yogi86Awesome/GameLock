@@ -55,9 +55,14 @@ function Test-Password([string]$Plain) {
     if (-not $s) { return $false }
     return ((Get-PasswordHash $Plain ([Convert]::FromBase64String($s.salt))) -eq $s.hash)
 }
+function Get-LocalNow($Config) {
+    if ($Config.timeZoneId) {
+        try { return [TimeZoneInfo]::ConvertTimeFromUtc([DateTime]::UtcNow, [TimeZoneInfo]::FindSystemTimeZoneById([string]$Config.timeZoneId)) } catch {}
+    }
+    return [DateTime]::UtcNow.AddHours([double]$Config.resetHourLocal - [double]$Config.resetHourUtc)
+}
 function Get-DayKey($Config) {
-    $offset = [double]$Config.resetHourLocal - [double]$Config.resetHourUtc
-    return [DateTime]::UtcNow.AddHours($offset).AddHours(-[double]$Config.resetHourLocal).ToString('yyyy-MM-dd')
+    return (Get-LocalNow $Config).AddHours(-[double]$Config.resetHourLocal).ToString('yyyy-MM-dd')
 }
 function Add-GrantLog([string]$Action, [int]$Minutes) {
     $log = Read-Json $GrantLog
@@ -1049,7 +1054,7 @@ function Load-Settings {
     Load-DayHours $c
     Set-Spin 'Reset'   ([int]$c.resetHourLocal)
     Set-Spin 'Grace'   $(if ($null -ne $c.graceSeconds) { [int]$c.graceSeconds } else { 60 })
-    $ui.AboutData.Text = "Data folder: $DataDir`nReset hour: $(Format-Hour $c.resetHourLocal) local ($($c.resetHourUtc):00 UTC)"
+    $ui.AboutData.Text = "Data folder: $DataDir`nReset hour: $(Format-Hour $c.resetHourLocal) in $(if ($c.timeZoneId) { $c.timeZoneId } else { 'a fixed UTC offset (re-save Settings to record the time zone)' })"
 }
 
 function Refresh-All { Update-Status; Update-History; Update-Activity }
@@ -1076,6 +1081,7 @@ $ui.BtnSave.Add_Click({
     $new['weekdayMinutes'] = Get-Spin 'Weekday'; $new['weekendMinutes'] = Get-Spin 'Weekend'; $new['limitMinutes'] = Get-Spin 'Weekday'
     $new['days'] = Get-DayHours
     $new['resetHourLocal'] = $resetLocal; $new['resetHourUtc'] = (($resetLocal - $offsetHours) % 24 + 24) % 24
+    $new['timeZoneId'] = [TimeZoneInfo]::Local.Id
     $new['graceSeconds'] = Get-Spin 'Grace'
     Write-Json $ConfigFile $new
     Add-GrantLog 'settings saved' 0

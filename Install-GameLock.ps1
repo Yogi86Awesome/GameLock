@@ -136,6 +136,7 @@ $defaults = [ordered]@{
     graceSeconds   = 60
     resetHourLocal = $ResetHour
     resetHourUtc   = $resetHourUtc
+    timeZoneId     = [TimeZoneInfo]::Local.Id
     warnings       = @($Warnings -split ',' | ForEach-Object { [int]$_.Trim() } | Where-Object { $_ -gt 0 })
     extraProcesses = @($ExtraProcesses -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 }

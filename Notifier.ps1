@@ -206,11 +206,15 @@ $FontMain = New-Object System.Drawing.Font('Segoe UI', 12, [System.Drawing.FontS
 $FontSub  = New-Object System.Drawing.Font('Segoe UI', 8.5)
 Set-BadgeRegion
 
-# Time until the next daily reset, from the fixed UTC reset hour in config.json.
+# Time until the next daily reset, in the zone recorded with the reset hour.
 function Get-ResetText($Config) {
-    if (-not $Config -or $null -eq $Config.resetHourUtc) { return '' }
-    $now  = [DateTime]::UtcNow
-    $next = $now.Date.AddHours([double]$Config.resetHourUtc)
+    if (-not $Config -or $null -eq $Config.resetHourLocal) { return '' }
+    $now = $null
+    if ($Config.timeZoneId) {
+        try { $now = [TimeZoneInfo]::ConvertTimeFromUtc([DateTime]::UtcNow, [TimeZoneInfo]::FindSystemTimeZoneById([string]$Config.timeZoneId)) } catch {}
+    }
+    if ($null -eq $now) { $now = [DateTime]::UtcNow.AddHours([double]$Config.resetHourLocal - [double]$Config.resetHourUtc) }
+    $next = $now.Date.AddHours([double]$Config.resetHourLocal)
     if ($next -le $now) { $next = $next.AddDays(1) }
     $span = $next - $now
     return ('Resets in {0}:{1:00}' -f [int][Math]::Floor($span.TotalHours), $span.Minutes)
